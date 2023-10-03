@@ -88,3 +88,5 @@ urllib3==1.26.7
 wcwidth==0.2.8
 Werkzeug==2.2.3
 zipp==3.17.0
+gunicorn
+dash-tools
