@@ -75,13 +75,14 @@ def delete_collection(proj="inversionpyp-7db7c", collect='', batch_size=500):
 def base_final(proj="inversionpyp-7db7c"):
     delete_collection(proj="inversionpyp-7db7c", collect='resultado_pyp', batch_size=1500)
     db = firestore.Client(project=proj)
-    empresas_collection = 'empresas'
-    empresas_documents = empresas_collection.stream()
-    empresas_datos = [doc.to_dict() for doc in documents]
+    empresas_collection_name = 'empresas'
+    empresas_collection_ref = db.collection(empresas_collection_name)
+    empresas_documents = empresas_collection_ref.stream()
+    empresas_datos = [doc.to_dict() for doc in empresas_documents]
     empresas = pd.DataFrame(empresas_datos)
     
     for colecc_ref in db.collections():
-        if colecc_ref != empresas_collection:
+        if colecc_ref != empresas_collection_name:
             documents = colecc_ref.stream()
             datos = [doc.to_dict() for doc in documents]
             temp_df = pd.DataFrame(datos)
