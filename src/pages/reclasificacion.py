@@ -1,22 +1,13 @@
-from dash import Dash, dcc, html, dash_table, Input, Output, State
+from dash import Dash, dcc, html, dash_table, Input, Output, State, callback
+import dash
 import base64
 import io
 import pandas as pd
-import firebase_admin
-from firebase_admin import credentials
-from firestore_upload import consulta_empresas
+from firestore_upload import consulta_empresas, cargue, delete_collection, base_final
 from google.cloud import storage
 from google.cloud import firestore
 
-
-# Check if the collection exists and run the code accordingly
-
-
-# Especifica la ruta al archivo JSON de las credenciales de servicio
-cred = credentials.Certificate("serviceAccountKey.json")
-
-# Inicializa Firebase Admin SDK con la credencial
-firebase_admin.initialize_app(cred)
+dash.register_page(__name__)
 
 # Inicializa el servicio de almacenamiento (Firebase Storage) con el nombre de tu bucket
 storage_client = storage.Client.from_service_account_json("serviceAccountKey.json")
@@ -26,9 +17,11 @@ bucket = storage_client.get_bucket("inversionpyp-7db7c.appspot.com")
 db = firestore.Client(project="inversionpyp-7db7c")
 empresas = None
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', 'styles.css']
+programa = "reclasificacion_"
 
-app = Dash(__name__, external_stylesheets=external_stylesheets)
+texto ="""
+1. Gestión de reclasificación de empresas.
+"""
 
 sucursales = [
     "AMAZONAS", "ANTIOQUIA", "ARAUCA", 
@@ -106,11 +99,11 @@ tab1_content = html.Div([
         }
         ),
         html.Br(),
-        html.Div(id="collapse-output")]),
+        html.Div(id="collapse-output-re")]),
     html.Hr(),
-    html.Div(id='output-data-upload'),
+    html.Div(id='output-data-upload-tab1-re'),
     dash_table.DataTable(
-        id='data-table',
+        id='data-table-re',
         columns=[],  # Se actualizará en la función display_contents
         data=[],     # Se actualizará en la función display_contents
         style_table={'overflowX': 'scroll'},
@@ -128,7 +121,7 @@ tab2_content = html.Div([
     # Botón para descargar la plantilla
     html.H3("Descargar Plantilla", style={'textAlign': 'center', 'font-family': 'Muli', 'color': '#ff7500'}),
     # Botón para descargar la plantilla
-    dcc.Link(html.Button("Descargar", id="url-button", style={
+    dcc.Link(html.Button("Descargar", id="url-button_tab2", style={
         'width': '98%',
         'height': '55px',
         'lineHeight': '60px',
@@ -144,7 +137,11 @@ tab2_content = html.Div([
     
     html.Br(),
     html.Br(),
-    html.H3("Ingrese los siguientes datos:", style={'textAlign': 'center', 'font-family': 'Muli', 'color': '#ff7500'}),
+    html.H3("Ingrese los siguientes datos:", 
+            style={
+                'textAlign': 'center',
+                'font-family': 'Muli',
+                'color': '#ff7500'}),
     dcc.Dropdown(sucursales, id="input1", placeholder="Sucursal:",style={
         'width': '99%',
         'height': '55px',
@@ -210,7 +207,7 @@ tab2_content = html.Div([
     ),
 
     html.Div(id="output"),
-    html.Div(id='output-data-upload-tab2'),
+    html.Div(id='output-data-upload-tab2-re'),
     dash_table.DataTable(
         id='data-table-tab2',
         columns=[],  # Se actualizará en la función display_contents
@@ -221,14 +218,14 @@ tab2_content = html.Div([
     )
 ])
 
-app.layout = html.Div([
+layout = html.Div([
     dcc.Tabs([
         dcc.Tab(label='Atención Directa', children=tab1_content),
         dcc.Tab(label='Asignación Recursos', children=tab2_content),
     ])
 ])
 
-def parse_contents(contents):
+def parse_contents(contents,tab_flag):
     content_type, content_string = contents.split(',')
     decoded = base64.b64decode(content_string)
     try:
@@ -247,8 +244,8 @@ def parse_contents(contents):
             # Calculate the total sum of ValorTotalEjecutado for all sheets
             df_wide['Total'] = df_wide.iloc[:, 6:].sum(axis=1)
         except:
-            return appended_df
-        return df_wide
+            return appended_df, tab_flag
+        return df_wide, tab_flag
     except Exception as e:
         print(e)
         return html.Div([
@@ -258,9 +255,8 @@ def parse_contents(contents):
 def generate_output_id(input1, input2, input3):
     return 'Sucursal: {input1}\nValor Factura: {input2}\nDescripción de la Inversión: {input3}'
 
-
-@app.callback(
-    Output("collapse-output", "children"),
+@callback(
+    Output("collapse-output-re", "children"),
     Input("toggle-button", "n_clicks"),
 )
 def toggle_collapse(n_clicks):
@@ -268,28 +264,23 @@ def toggle_collapse(n_clicks):
         return ""
     if n_clicks % 2 == 1:
         return dcc.Markdown(
-            """
-            1. Asignadas y atendidas por proveedor.
-            2. Asignadas y atendidas con recurso propio (personal de positiva).
-            3. Asignación y atención por investigación de AT.
-            4. Gestión de reclasificación de empresas.
-            5. Definición de viáticos.
-            6. Estrategias para la gestión de empresas no efectivas.
-            7. Eventos masivos de atención (Estrategia de cobertura).
-            8. Recurso propio para gestión y atención de empresas.
-            """
+            texto
         )
     else:
         return ""
 
 # Función para mostrar los datos en la interfaz de usuario
-@app.callback(Output('output-data-upload', 'children'),
-              Output('data-table', 'columns'),
-              Output('data-table', 'data'),
+@callback(Output('output-data-upload-tab1-re', 'children'),
+              Output('data-table-re', 'columns'),
+              Output('data-table-re', 'data'),
               Input('upload-data', 'contents'))
-def display_contents(contents):
+def display_contents_tab1(contents):
     if contents is not None:
-        dataframes = parse_contents(contents)
+        dataframes, tab_flag = parse_contents(contents, "directa")
+        collection = programa + tab_flag
+        delete_collection(collect=collection)
+        cargue(collect=collection, df=dataframes)
+        base_final()
         if dataframes is not None:
             # Construir DataTable
             columns = [{'name': col, 'id': col} for col in dataframes.columns]
@@ -305,8 +296,8 @@ def display_contents(contents):
     return html.Div(), [], []
 
 # Función para mostrar los datos en la interfaz de usuario
-@app.callback(
-    Output('output-data-upload-tab2', 'children'),
+@callback(
+    Output('output-data-upload-tab2-re', 'children'),
     Input("input1", "value"),
     Input("input2", "value"),
     Input("input3", "value"),
@@ -318,13 +309,19 @@ def display_contents_tab_2(input1, input2, input3, contents, filename, last_modi
     if contents is not None:
         global empresas 
         empresas = consulta_empresas()
-        dataframes = parse_contents(contents)
+        dataframes, tab_flag = parse_contents(contents, "indirecta")
         dataframes = dataframes.merge(empresas,
                                       on=['Vigencia', 'Mes', 'Sucursal', 'Tipo Documento', 'No. Documento', 'Razón Social'],
                                       how='left')
         dataframes['Sucursal_2'] = input1
         dataframes['Valor'] = input2
         dataframes['Descripción'] = input3
+        suma_prima_total = dataframes['Prima'].sum()
+        dataframes['Total_inv_pyp'] = ((dataframes['Prima'] / suma_prima_total)) * dataframes['Valor']
+        collection = programa + tab_flag
+        delete_collection(collect=collection)
+        cargue(collect=collection, df=dataframes)
+        base_final()
         if dataframes is not None:
             # Construir DataTable
             columns = [{'name': col, 'id': col} for col in dataframes.columns]
@@ -350,7 +347,3 @@ def display_contents_tab_2(input1, input2, input3, contents, filename, last_modi
             ])
     # Si no se ha cargado ningún archivo o ha ocurrido un error
     return html.Div() 
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
