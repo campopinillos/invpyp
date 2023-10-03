@@ -7,6 +7,9 @@ from firebase_admin import credentials
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = Dash(__name__, external_stylesheets=external_stylesheets, use_pages=True)
+
+server = app.server
+
 # Especifica la ruta al archivo JSON de las credenciales de servicio
 cred = credentials.Certificate("./serviceAccountKey.json")
 # Inicializa Firebase Admin SDK con la credencial
