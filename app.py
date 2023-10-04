@@ -18,4 +18,4 @@ firebase_admin.initialize_app(cred)
 app.layout = html.Div([dash.page_container])
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, host="0.0.0.0", port=8080)

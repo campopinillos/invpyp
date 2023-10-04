@@ -9,7 +9,7 @@ empresas = consulta_empresas(collect='resultado_pyp')
 
 layout = html.Div([
     dash_table.DataTable(
-        id='table',
+        id='table_result',
         columns=[{'name': col, 'id': col} for col in empresas.columns],
         data=empresas.to_dict('records'),
         style_table={'overflowX': 'scroll'},

@@ -56,7 +56,7 @@ tab1_content = html.Div([
         'margin': '10px',
         'font-family': 'Muli',
         'font-size': '18px'
-    }), href="https://firebasestorage.googleapis.com/v0/b/inversionpyp-7db7c.appspot.com/o/REPORTE_PLANTILLA_GRAN_MIPYIME.xlsx?alt=media&token=f1441b75-9ba2-4f32-925a-c49718847085",
+    }), href="https://firebasestorage.googleapis.com/v0/b/inversionpyp-7db7c.appspot.com/o/REPORTE_PLANTILLA.xlsx?alt=media&token=eb69b535-27fc-486e-b0af-a5a09dcb244d&_gl=1*s6zata*_ga*MTgyODYxOTA3OC4xNjk2MzAwMDYw*_ga_CW55HF8NVT*MTY5NjQzOTY5OC43LjAuMTY5NjQzOTY5OC42MC4wLjA.",
     target="_blank"),
     
     html.Br(),
@@ -241,6 +241,7 @@ def parse_contents(contents,tab_flag):
         appended_df = pd.DataFrame()  # DataFrame para appendear
         for sheet_name in sheet_names:
             df = pd.read_excel(xls, sheet_name)
+            df['Programa'] = programa
             df['Tipo Atención'] = sheet_name
             appended_df = pd.concat([appended_df, df], ignore_index=True)
         try:
@@ -319,6 +320,7 @@ def display_contents_tab_2(input1, input2, input3, contents, filename, last_modi
         dataframes = dataframes.merge(empresas,
                                       on=['Vigencia', 'Mes', 'Sucursal', 'Tipo Documento', 'No. Documento', 'Razón Social'],
                                       how='left')
+        dataframes['Programa'] = programa
         dataframes['Sucursal_2'] = input1
         dataframes['Valor'] = input2
         dataframes['Descripción'] = input3

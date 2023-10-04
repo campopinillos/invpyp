@@ -17,11 +17,7 @@ bucket = storage_client.get_bucket("inversionpyp-7db7c.appspot.com")
 db = firestore.Client(project="inversionpyp-7db7c")
 empresas = None
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', 'styles.css']
-
-app = Dash(__name__, external_stylesheets=external_stylesheets)
-
-programa = "comunica_"
+programa = "educa_"
 
 texto ="""
 1. Asignadas y atendidas por proveedor.
@@ -55,7 +51,7 @@ tab1_content = html.Div([
         'margin': '10px',
         'font-family': 'Muli',
         'font-size': '18px'
-    }), href="https://firebasestorage.googleapis.com/v0/b/inversionpyp-7db7c.appspot.com/o/REPORTE_PLANTILLA_GRAN_MIPYIME.xlsx?alt=media&token=f1441b75-9ba2-4f32-925a-c49718847085",
+    }), href="https://firebasestorage.googleapis.com/v0/b/inversionpyp-7db7c.appspot.com/o/REPORTE_PLANTILLA.xlsx?alt=media&token=eb69b535-27fc-486e-b0af-a5a09dcb244d&_gl=1*s6zata*_ga*MTgyODYxOTA3OC4xNjk2MzAwMDYw*_ga_CW55HF8NVT*MTY5NjQzOTY5OC43LjAuMTY5NjQzOTY5OC42MC4wLjA.",
     target="_blank"),
     
     html.Br(),
@@ -104,11 +100,11 @@ tab1_content = html.Div([
         }
         ),
         html.Br(),
-        html.Div(id="collapse-output-com")]),
+        html.Div(id="collapse-output-edu")]),
     html.Hr(),
-    html.Div(id='output-data-upload-tab1-com'),
+    html.Div(id='output-data-upload-tab1-edu'),
     dash_table.DataTable(
-        id='data-table-com',
+        id='data-table-edu',
         columns=[],  # Se actualizará en la función display_contents
         data=[],     # Se actualizará en la función display_contents
         style_table={'overflowX': 'scroll'},
@@ -212,7 +208,7 @@ tab2_content = html.Div([
     ),
 
     html.Div(id="output"),
-    html.Div(id='output-data-upload-tab2-com'),
+    html.Div(id='output-data-upload-tab2-edu'),
     dash_table.DataTable(
         id='data-table-tab2',
         columns=[],  # Se actualizará en la función display_contents
@@ -240,6 +236,7 @@ def parse_contents(contents,tab_flag):
         appended_df = pd.DataFrame()  # DataFrame para appendear
         for sheet_name in sheet_names:
             df = pd.read_excel(xls, sheet_name)
+            df['Programa'] = programa
             df['Tipo Atención'] = sheet_name
             appended_df = pd.concat([appended_df, df], ignore_index=True)
         try:
@@ -261,7 +258,7 @@ def generate_output_id(input1, input2, input3):
     return 'Sucursal: {input1}\nValor Factura: {input2}\nDescripción de la Inversión: {input3}'
 
 @callback(
-    Output("collapse-output-com", "children"),
+    Output("collapse-output-edu", "children"),
     Input("toggle-button", "n_clicks"),
 )
 def toggle_collapse(n_clicks):
@@ -275,9 +272,9 @@ def toggle_collapse(n_clicks):
         return ""
 
 # Función para mostrar los datos en la interfaz de usuario
-@callback(Output('output-data-upload-tab1-com', 'children'),
-              Output('data-table-com', 'columns'),
-              Output('data-table-com', 'data'),
+@callback(Output('output-data-upload-tab1-edu', 'children'),
+              Output('data-table-edu', 'columns'),
+              Output('data-table-edu', 'data'),
               Input('upload-data', 'contents'))
 def display_contents_tab1(contents):
     if contents is not None:
@@ -302,7 +299,7 @@ def display_contents_tab1(contents):
 
 # Función para mostrar los datos en la interfaz de usuario
 @callback(
-    Output('output-data-upload-tab2-com', 'children'),
+    Output('output-data-upload-tab2-edu', 'children'),
     Input("input1", "value"),
     Input("input2", "value"),
     Input("input3", "value"),
@@ -318,6 +315,7 @@ def display_contents_tab_2(input1, input2, input3, contents, filename, last_modi
         dataframes = dataframes.merge(empresas,
                                       on=['Vigencia', 'Mes', 'Sucursal', 'Tipo Documento', 'No. Documento', 'Razón Social'],
                                       how='left')
+        dataframes['Programa'] = programa
         dataframes['Sucursal_2'] = input1
         dataframes['Valor'] = input2
         dataframes['Descripción'] = input3
